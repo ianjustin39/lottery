@@ -1,17 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <div id="app"></div>
-    <!-- built files will be auto injected -->
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <script src="https://unpkg.com/vue"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.14.1/lodash.min.js"></script>
+  <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+  <title><%= htmlWebpackPlugin.options.title %></title>
+</head>
+
+<body>
+  <h1>Lazy Sudoku</h1>
+  <p>Keep hitting the shuffle button until you win.</p>
+  <div id="list-complete-demo" class="demo">
+    <button v-on:click="shuffle">Shuffle</button>
+    <button v-on:click="add">Add</button>
+    <button v-on:click="remove">Remove</button>
+    <transition-group name="list-complete" tag="p">
+      <span v-for="item in items" v-bind:key="item" class="list-complete-item">
+        {{ item }}
+      </span>
+    </transition-group>
+  </div>
+  <div id="sudoku-demo" class="demo">
+
+    <button @click="shuffle">
+      Shuffle
+    </button>
+    <transition-group name="cell" tag="div" class="container">
+      <div v-for="cell in cells" :key="cell.id" class="cell">
+        {{ cell.number }}
+      </div>
+    </transition-group>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#list-complete-demo',
+      data: {
+        items: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        nextNum: 10
+      },
+      methods: {
+        randomIndex: function () {
+          return Math.floor(Math.random() * this.items.length)
+        },
+        shuffle: function () {
+          this.items = _.shuffle(this.items)
+        }
+      }
+    });
+
+    new Vue({
+      el: "#sudoku-demo",
+      data: {
+        cells: Array.apply(null, { length: 25 }).map(function (_, index) {
+          return {
+            id: index,
+            number: index + 1
+          };
+        })
+      },
+      methods: {
+        shuffle: function () {
+          this.cells = _.shuffle(this.cells);
+        }
+      }
+    });
+  </script>
+</body>
+
 </html>
+
+<style>
+  .list-complete-item {
+    transition: all 1s;
+    display: inline-block;
+    margin-right: 10px;
+  }
+
+  .list-complete-enter,
+  .list-complete-leave-to
+
+  /* .list-complete-leave-active below version 2.1.8 */
+    {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .list-complete-leave-active {
+    position: absolute;
+  }
+
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 650px;
+    margin-top: 10px;
+  }
+
+  .cell {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 120px;
+    height: 120px;
+    border: 1px solid #aaa;
+    margin-right: -1px;
+    margin-bottom: -1px;
+  }
+
+  .cell:nth-child(3n) {
+    margin-right: 0;
+  }
+
+  .cell:nth-child(27n) {
+    margin-bottom: 0;
+  }
+
+  .cell-move {
+    transition: transform 1s;
+  }
+</style>
