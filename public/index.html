@@ -14,39 +14,44 @@
 <body>
   <h1>Lazy Sudoku</h1>
   <p>Keep hitting the shuffle button until you win.</p>
-  <div id="list-complete-demo" class="demo">
-    <button v-on:click="shuffle">Shuffle</button>
-    <button v-on:click="add">Add</button>
-    <button v-on:click="remove">Remove</button>
-    <transition-group name="list-complete" tag="p">
-      <span v-for="item in items" v-bind:key="item" class="list-complete-item">
-        {{ item }}
-      </span>
-    </transition-group>
-  </div>
-  <div id="sudoku-demo" class="demo">
+  <div>
+    <div id="flip-list-demo" class="demo">
+      <button v-on:click="shuffle">Shuffle</button>
+      <transition-group name="flip-list" tag="p">
+        <span v-for="item in items" v-bind:key="item" class="list-complete-item">
+          {{ item }}
+        </span>
+      </transition-group>
+    </div>
+    <div id="sudoku-demo" class="demo">
 
-    <button @click="shuffle">
-      Shuffle
-    </button>
-    <transition-group name="cell" tag="div" class="container">
-      <div v-for="cell in cells" :key="cell.id" class="cell">
-        {{ cell.number }}
+      <button @click="shuffle">
+        Shuffle
+      </button>
+      <button @click="start">start</button>
+      <button @click="end">end</button>
+      <button @click="reset">reset</button>
+      <div class="draw-list">
+        <span v-for="item in target"> {{item.number}} </span>
       </div>
-    </transition-group>
+      <transition-group name="cell" tag="div" class="container">
+        <div v-for="cell in cells" :key="cell.id" class="cell">
+          {{ cell.number }}
+        </div>
+      </transition-group>
+    </div>
   </div>
+
 
   <script>
+    var inputData = ["李志軒1", "李志軒2", "李志軒3", "李志軒4", "李志軒5", "李志軒6", "李志軒7", "李志軒8"
+      , "李志軒9", "李志軒10", "李志軒11", "李志軒12", "李志軒13", "李志軒14", "李志軒15"];
     new Vue({
-      el: '#list-complete-demo',
+      el: '#flip-list-demo',
       data: {
-        items: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-        nextNum: 10
+        items: inputData
       },
       methods: {
-        randomIndex: function () {
-          return Math.floor(Math.random() * this.items.length)
-        },
         shuffle: function () {
           this.items = _.shuffle(this.items)
         }
@@ -56,16 +61,73 @@
     new Vue({
       el: "#sudoku-demo",
       data: {
-        cells: Array.apply(null, { length: 25 }).map(function (_, index) {
+        cells: Array.apply(null, { length: inputData.length }).map(function (_, index) {
           return {
             id: index,
-            number: index + 1
+            number: inputData[index]
           };
-        })
+        }),
+
+        target: [],//中獎名單
+        index: -1,//當前隨機索引
+        timer: null,//定義一個定時器
+        value: '',//當前人員名
+        status: true//當前抽獎狀態
+      },
+
+      mounted() {
+
+        if (localStorage.getItem('initData') === "undefined") {
+          alert()
+          localStorage.setItem('initData', JSON.stringify(this.cells))
+        } else {
+          this.cells = JSON.parse(localStorage.getItem('initData'))
+        }
+        if (localStorage.getItem('drawList')) {
+          this.target = JSON.parse(localStorage.getItem('drawList'))
+        }
       },
       methods: {
         shuffle: function () {
           this.cells = _.shuffle(this.cells);
+        },
+        start() {
+          if (this.status) {
+            if (this.index != -1) {
+              this.cells.splice(this.index, 1)
+              localStorage.setItem('initData', JSON.stringify(this.cells))
+            }
+            this.shuffle()
+            setTimeout(() => {
+              this.recursive()
+            }, 800)
+            this.status = !this.status
+          }
+        },
+        randomIndex: function () {
+          this.index = Math.floor(Math.random() * this.cells.length)
+          return this.index
+        },
+        remove: function () {
+          this.cells.splice(this.randomIndex(), 1)
+        },
+        recursive() {
+          clearTimeout(this.timer)
+          this.timer = setTimeout(() => {
+            this.value = this.cells[this.randomIndex()]
+            this.recursive()
+          }, 200)
+        },
+        end() {
+          if (this.status) {
+            return
+          }
+          clearTimeout(this.timer)
+          this.index = this.randomIndex()
+          this.value = this.cells[this.index]
+          this.target.push(this.value)
+          localStorage.setItem('drawList', JSON.stringify(this.target))
+          this.status = !this.status
         }
       }
     });
@@ -75,25 +137,18 @@
 </html>
 
 <style>
+  .flip-list-move {
+    transition: transform 1s;
+  }
+
   .list-complete-item {
     transition: all 1s;
     display: inline-block;
     margin-right: 10px;
   }
 
-  .list-complete-enter,
-  .list-complete-leave-to
 
-  /* .list-complete-leave-active below version 2.1.8 */
-    {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  .list-complete-leave-active {
-    position: absolute;
-  }
-
+  /**/
   .container {
     display: flex;
     flex-wrap: wrap;
