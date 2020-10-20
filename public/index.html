@@ -7,35 +7,40 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <script src="https://unpkg.com/vue"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.14.1/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.2.3/velocity.min.js"></script>
   <link rel="icon" href="<%= BASE_URL %>favicon.ico">
   <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 
 <body>
-  <h1>Lazy Sudoku</h1>
-  <p>Keep hitting the shuffle button until you win.</p>
-  <div>
-    <div id="flip-list-demo" class="demo">
-      <button v-on:click="shuffle">Shuffle</button>
-      <transition-group name="flip-list" tag="p">
-        <span v-for="item in items" v-bind:key="item" class="list-complete-item">
+  <h1>抽獎幾</h1>
+  <p>先打亂抽獎名單，再進行抽獎。抽獎先點選開始，等待時機成熟時點選結束。</p>
+  <div id="sudoku-demo" class="demo">
+    <div class="person">
+      順序：
+      <transition v-on:before-enter="beforeEnter" v-on:enter="enter" v-on:leave="leave" v-bind:css="false">
+        <button v-if="show" v-on:click="shufflePerson(); show = !show">打亂</button>
+      </transition>
+
+      <transition-group name="flip-list" tag="ul">
+        <li v-for="item in items" v-bind:key="item" class="list-complete-item">
           {{ item }}
-        </span>
+        </li>
       </transition-group>
     </div>
-    <div id="sudoku-demo" class="demo">
-
-      <button @click="shuffle">
-        Shuffle
-      </button>
-      <button @click="start">start</button>
-      <button @click="end">end</button>
-      <button @click="reset">reset</button>
-      <div class="draw-list">
-        <span v-for="item in target"> {{item.number}} </span>
-      </div>
+    <div class="person">
+      抽中：
+      <transition mode="in-out">
+        <button @click="start(); go = !go" v-if="go">開始</button>
+        <button @click="end(); go = !go" v-else>停止</button>
+      </transition>
+      <ul class="draw-list">
+        <li v-for="item in target"> {{item.number}} </li>
+      </ul>
+    </div>
+    <div class="person">
       <transition-group name="cell" tag="div" class="container">
-        <div v-for="cell in cells" :key="cell.id" class="cell">
+        <div v-for="cell in cells" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number}">
           {{ cell.number }}
         </div>
       </transition-group>
@@ -44,27 +49,21 @@
 
 
   <script>
-    var inputData = ["李志軒1", "李志軒2", "李志軒3", "李志軒4", "李志軒5", "李志軒6", "李志軒7", "李志軒8"
-      , "李志軒9", "李志軒10", "李志軒11", "李志軒12", "李志軒13", "李志軒14", "李志軒15"];
-    new Vue({
-      el: '#flip-list-demo',
-      data: {
-        items: inputData
-      },
-      methods: {
-        shuffle: function () {
-          this.items = _.shuffle(this.items)
-        }
-      }
-    });
+    var inputData = ["蔡X宇", "李至軒2", "李至軒3", "李至軒4", "李至軒5", "李至軒6", "李至軒7", "李至軒8"
+      , "李至軒9", "李至軒10", "李至軒11", "李至軒12", "李至軒13", "李至軒14", "李至軒15"];
+
+    var num = 0;
 
     new Vue({
       el: "#sudoku-demo",
       data: {
+        go: true,
+        show: true,
+        items: inputData,
         cells: Array.apply(null, { length: inputData.length }).map(function (_, index) {
           return {
             id: index,
-            number: inputData[index]
+            number: inputData[index],
           };
         }),
 
@@ -77,17 +76,39 @@
 
       mounted() {
 
-        if (localStorage.getItem('initData') === "undefined") {
-          alert()
-          localStorage.setItem('initData', JSON.stringify(this.cells))
-        } else {
-          this.cells = JSON.parse(localStorage.getItem('initData'))
-        }
-        if (localStorage.getItem('drawList')) {
-          this.target = JSON.parse(localStorage.getItem('drawList'))
-        }
+        // if (localStorage.getItem('initData') === "undefined") {
+        //   alert()
+        //   localStorage.setItem('initData', JSON.stringify(this.cells))
+        // } else {
+        //   this.cells = JSON.parse(localStorage.getItem('initData'))
+        // }
+        // if (localStorage.getItem('drawList')) {
+        //   this.target = JSON.parse(localStorage.getItem('drawList'))
+        // }
       },
       methods: {
+        beforeEnter: function (el) {
+          el.style.opacity = 0
+          el.style.transformOrigin = 'left'
+        },
+        enter: function (el, done) {
+          Velocity(el, { opacity: 1, fontSize: '1.4em' }, { duration: 300 })
+          Velocity(el, { fontSize: '1em' }, { complete: done })
+        },
+        leave: function (el, done) {
+          Velocity(el, { translateX: '15px', rotateZ: '50deg' }, { duration: 600 })
+          Velocity(el, { rotateZ: '100deg' }, { loop: 2 })
+          Velocity(el, {
+            rotateZ: '45deg',
+            translateY: '30px',
+            translateX: '30px',
+            opacity: 0
+          }, { complete: done })
+        },
+
+        shufflePerson: function () {
+          this.items = _.shuffle(this.items)
+        },
         shuffle: function () {
           this.cells = _.shuffle(this.cells);
         },
@@ -143,17 +164,31 @@
 
   .list-complete-item {
     transition: all 1s;
-    display: inline-block;
     margin-right: 10px;
   }
 
+  .draw-bg {
+    background-color: crimson;
+    transform-origin: 50% 50%;
+    transform: scale(1.1, 1.1);
+  }
+
+  .person {
+    display: inline-block;
+    vertical-align: top;
+    list-style-type: none;
+  }
+
+  ul li {
+    list-style-type: none;
+  }
 
   /**/
   .container {
     display: flex;
     flex-wrap: wrap;
-    width: 650px;
-    margin-top: 10px;
+    width: 700px;
+    margin: 10px;
   }
 
   .cell {
@@ -162,9 +197,8 @@
     align-items: center;
     width: 120px;
     height: 120px;
-    border: 1px solid #aaa;
-    margin-right: -1px;
-    margin-bottom: -1px;
+    /* border: 1px solid #aaa; */
+    /* margin: 1px; */
   }
 
   .cell:nth-child(3n) {
