@@ -39,10 +39,10 @@
       </ul>
     </div>
     <div class="person">
-      <transition-group name="cell" tag="div" class="container">
-        <div v-for="cell in cells" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number}">
+      <transition-group name="cell" tag="ul" class="container">
+        <li v-for="cell in cells" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number}">
           {{ cell.number }}
-        </div>
+        </li>
       </transition-group>
     </div>
   </div>
@@ -77,7 +77,6 @@
       mounted() {
 
         // if (localStorage.getItem('initData') === "undefined") {
-        //   alert()
         //   localStorage.setItem('initData', JSON.stringify(this.cells))
         // } else {
         //   this.cells = JSON.parse(localStorage.getItem('initData'))
@@ -85,6 +84,8 @@
         // if (localStorage.getItem('drawList')) {
         //   this.target = JSON.parse(localStorage.getItem('drawList'))
         // }
+
+
       },
       methods: {
         beforeEnter: function (el) {
@@ -170,7 +171,7 @@
   .draw-bg {
     background-color: crimson;
     transform-origin: 50% 50%;
-    transform: scale(1.1, 1.1);
+    /* transform: scale(1.1, 1.1); */
   }
 
   .person {
@@ -195,8 +196,8 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    width: 120px;
-    height: 120px;
+    width: 520px;
+    height: 20px;
     /* border: 1px solid #aaa; */
     /* margin: 1px; */
   }
@@ -210,6 +211,6 @@
   }
 
   .cell-move {
-    transition: transform 1s;
+    transition: transform 0.5s;
   }
 </style>
