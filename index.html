@@ -1,0 +1,157 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><script src="https://unpkg.com/vue"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.14.1/lodash.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.2.3/velocity.min.js"></script><link rel="icon" href="/favicon.ico"><title>lottery</title><link href="/js/app.c89c3097.js" rel="preload" as="script"><link href="/js/chunk-vendors.405144c6.js" rel="preload" as="script"></head><body><h1>抽獎幾</h1><p>先打亂抽獎名單，再進行抽獎。抽獎先點選開始，等待時機成熟時點選結束。</p><div id="sudoku-demo" class="demo"><div class="person">順序：<transition v-on:before-enter="beforeEnter" v-on:enter="enter" v-on:leave="leave" v-bind:css="false"><button v-if="show" v-on:click="shufflePerson(); show = !show">打亂</button></transition><transition-group name="flip-list" tag="ul"><li v-for="item in items" v-bind:key="item" class="list-complete-item">{{ item }}</li></transition-group></div><div class="person">抽中：<transition mode="in-out"><button @click="start(); go = !go" v-if="go">開始</button> <button @click="end(); go = !go" v-else>停止</button></transition><ul class="draw-list"><li v-for="item in target">{{item.number}}</li></ul></div><div class="person"><transition-group name="cell" tag="ul" class="container"><li v-for="cell in cells" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number}">{{ cell.number }}</li></transition-group></div></div><script>var inputData = ["蔡X宇", "李至軒2", "李至軒3", "李至軒4", "李至軒5", "李至軒6", "李至軒7", "李至軒8"
+      , "李至軒9", "李至軒10", "李至軒11", "李至軒12", "李至軒13", "李至軒14", "李至軒15"];
+
+    var num = 0;
+
+    new Vue({
+      el: "#sudoku-demo",
+      data: {
+        go: true,
+        show: true,
+        items: inputData,
+        cells: Array.apply(null, { length: inputData.length }).map(function (_, index) {
+          return {
+            id: index,
+            number: inputData[index],
+          };
+        }),
+
+        target: [],//中獎名單
+        index: -1,//當前隨機索引
+        timer: null,//定義一個定時器
+        value: '',//當前人員名
+        status: true//當前抽獎狀態
+      },
+
+      mounted() {
+
+        // if (localStorage.getItem('initData') === "undefined") {
+        //   localStorage.setItem('initData', JSON.stringify(this.cells))
+        // } else {
+        //   this.cells = JSON.parse(localStorage.getItem('initData'))
+        // }
+        // if (localStorage.getItem('drawList')) {
+        //   this.target = JSON.parse(localStorage.getItem('drawList'))
+        // }
+
+
+      },
+      methods: {
+        beforeEnter: function (el) {
+          el.style.opacity = 0
+          el.style.transformOrigin = 'left'
+        },
+        enter: function (el, done) {
+          Velocity(el, { opacity: 1, fontSize: '1.4em' }, { duration: 300 })
+          Velocity(el, { fontSize: '1em' }, { complete: done })
+        },
+        leave: function (el, done) {
+          Velocity(el, { translateX: '15px', rotateZ: '50deg' }, { duration: 600 })
+          Velocity(el, { rotateZ: '100deg' }, { loop: 2 })
+          Velocity(el, {
+            rotateZ: '45deg',
+            translateY: '30px',
+            translateX: '30px',
+            opacity: 0
+          }, { complete: done })
+        },
+
+        shufflePerson: function () {
+          this.items = _.shuffle(this.items)
+        },
+        shuffle: function () {
+          this.cells = _.shuffle(this.cells);
+        },
+        start() {
+          if (this.status) {
+            if (this.index != -1) {
+              this.cells.splice(this.index, 1)
+              localStorage.setItem('initData', JSON.stringify(this.cells))
+            }
+            this.shuffle()
+            setTimeout(() => {
+              this.recursive()
+            }, 800)
+            this.status = !this.status
+          }
+        },
+        randomIndex: function () {
+          this.index = Math.floor(Math.random() * this.cells.length)
+          return this.index
+        },
+        remove: function () {
+          this.cells.splice(this.randomIndex(), 1)
+        },
+        recursive() {
+          clearTimeout(this.timer)
+          this.timer = setTimeout(() => {
+            this.value = this.cells[this.randomIndex()]
+            this.recursive()
+          }, 200)
+        },
+        end() {
+          if (this.status) {
+            return
+          }
+          clearTimeout(this.timer)
+          this.index = this.randomIndex()
+          this.value = this.cells[this.index]
+          this.target.push(this.value)
+          localStorage.setItem('drawList', JSON.stringify(this.target))
+          this.status = !this.status
+        }
+      }
+    });</script><script src="/js/chunk-vendors.405144c6.js"></script><script src="/js/app.c89c3097.js"></script></body></html><style>.flip-list-move {
+    transition: transform 1s;
+  }
+
+  .list-complete-item {
+    transition: all 1s;
+    margin-right: 10px;
+  }
+
+  .draw-bg {
+    background-color: crimson;
+    transform-origin: 50% 50%;
+    /* transform: scale(1.1, 1.1); */
+  }
+
+  .person {
+    display: inline-block;
+    vertical-align: top;
+    list-style-type: none;
+  }
+
+  ul li {
+    list-style-type: none;
+  }
+
+  /**/
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 700px;
+    margin: 10px;
+  }
+
+  .cell {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 520px;
+    height: 20px;
+    /* border: 1px solid #aaa; */
+    /* margin: 1px; */
+  }
+
+  .cell:nth-child(3n) {
+    margin-right: 0;
+  }
+
+  .cell:nth-child(27n) {
+    margin-bottom: 0;
+  }
+
+  .cell-move {
+    transition: transform 0.5s;
+  }</style>
