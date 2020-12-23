@@ -266,6 +266,15 @@
             }
             this.victim = this.value
             this.target.splice(this.index, 1)
+            let selecteName;
+            for (var i = 0; i < this.nameList.length; i++){
+              if (this.nameList[i].number === this.items[this.orderNumber]){
+                selecteName = this.nameList[i];
+                break;
+              }
+            }
+            this.target.push(selecteName);
+            localStorage.setItem('drawList', JSON.stringify(this.target))
           }else{
             if (this.orderNumber == 8){
               for (var i = 0; i < this.nameList.length; i++){
