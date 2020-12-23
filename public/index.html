@@ -12,11 +12,19 @@
   <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 
-<body>
-  <h1>抽獎幾</h1>
-  <p>先打亂抽獎名單，再進行抽獎。抽獎先點選開始，等待時機成熟時點選結束。</p>
+<body class="body" style="margin:0">
+  <!-- <h1>抽獎幾</h1>
+  <p>先打亂抽獎名單，再進行抽獎。抽獎先點選開始，等待時機成熟時點選結束。</p> -->
   <div id="sudoku-demo" class="demo">
-    <div class="person">
+    <div :class="{'start-cover': !isStarted}" @click="letsGo()"></div>
+    <div class="result" :class="{'show-result': !isShowed}" @click="next()">
+      <div class="award">
+        <img src="pic/得獎章.png" width="50%" style="position:absolute; top:20%; left: 24.5%; z-index: 1;" />
+        <span style="position:absolute; top:32%; left: 35%;color: #F1D277;font-size: 11rem; font-weight: bolder;">{{victim&&victim.id?victim.number:value.number}}</span>
+        <span style="position:absolute; top:78%; left: 38%;color: #F1D277;font-size: 6rem; font-weight: bolder;">恭喜中獎</span>
+      </div>
+    </div>
+    <!-- <div class="person">
       順序：
       <transition v-on:before-enter="beforeEnter" v-on:enter="enter" v-on:leave="leave" v-bind:css="false">
         <button v-if="show" v-on:click="shufflePerson(); show = !show">打亂</button>
@@ -37,22 +45,47 @@
       <ul class="draw-list">
         <li v-for="item in target"> {{item.number}} </li>
       </ul>
-    </div>
-    <div class="person">
-      <transition-group name="cell" tag="ul" class="container">
-        <li v-for="cell in cells" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number}">
-          {{ cell.number }}
-        </li>
-      </transition-group>
+    </div> -->
+    <div class="main">
+      <div class="annouce">
+        <img src="pic/name.png" width="200vw"/>
+        <br>
+        <br>
+        <span style="color: white; font-size: 6rem; font-weight: bolder;">{{victim&&victim.id?victim.number:items[orderNumber]}}</span>
+      </div>
+      <div class="person" :class="{'person-disabled': isRobbed}">
+        <transition-group name="cell" tag="ul" class="container">
+          <li v-for="cell in nameList" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number, 'isDrawed': cell.isDrawed}">
+            {{ cell.number }}
+          </li>
+        </transition-group>
+      </div>
+      <div class="person rob-div" :class="{'rob-div-disabled': !isRobbed}">
+        <transition-group name="cell" tag="ul" class="container">
+          <li v-for="cell in target" :key="cell.id" class="cell" :class="{'draw-bg': cell.number == value.number, 'isDrawed': cell.isRobbed}">
+            {{ cell.number }}
+          </li>
+        </transition-group>
+      </div>
+      <div class="container btn-div">
+        <div @click="start()" class="start-btn" :class="{'start-btn-disabled': !status}"></div>
+        <div @click="end()" class="end-btn" :class="{'end-btn-disabled': status}"></div>
+        <div @click="draw()" class="draw-btn" :class="{'draw-btn-disabled': !isRobbed}"></div>
+        <div @click="rob()" class="rob-btn" :class="{'rob-btn-disabled': isRobbed}"></div>
+      </div>
     </div>
   </div>
 
 
   <script>
-    var inputData = ["蔡X宇", "李至軒2", "李至軒3", "李至軒4", "李至軒5", "李至軒6", "李至軒7", "李至軒8"
-      , "李至軒9", "李至軒10", "李至軒11", "李至軒12", "李至軒13", "李至軒14", "李至軒15"];
+    var inputData = ["蔡謦宇", "關正權", "吳宜靜", "黃義盛", "吳子聖", "謝昭漢", "張淑婷", "廖淯翔", 
+                     "蔡珮華", "蔡家佳", "林啟平", "顏廷珍", "周聖漋", "童筱蓉", "莫菁菁", "許僑芸", 
+                     "湯硯智", "蕭靖恩", "王秋涵", "李采璇", "洪韻雅", "劉諺霖", "林炳騰", "趙盈茹",
+                     "蔣忠良", "鄭淽隃", "詹超宇", "黃立菲", "蘇裕豐", "陸  藝", "劉宛庭"];
 
     var num = 0;
+
+    var removesList = []
 
     new Vue({
       el: "#sudoku-demo",
@@ -66,26 +99,64 @@
             number: inputData[index],
           };
         }),
-
+        nameList: Array.apply(null, { length: inputData.length }).map(function (_, index) {
+          return {
+            id: index,
+            number: inputData[index],
+            isDrawed: false, 
+            isRobbed: false
+          };
+        }),
         target: [],//中獎名單
         index: -1,//當前隨機索引
         timer: null,//定義一個定時器
         value: '',//當前人員名
-        status: true//當前抽獎狀態
+        victim: '',
+        status: true,//當前抽獎狀態
+        isRobbed: false,
+        isStarted: false,
+        orderNumber: 0,
+        isShowed: false
+        
       },
 
       mounted() {
 
-        // if (localStorage.getItem('initData') === "undefined") {
-        //   localStorage.setItem('initData', JSON.stringify(this.cells))
-        // } else {
-        //   this.cells = JSON.parse(localStorage.getItem('initData'))
-        // }
-        // if (localStorage.getItem('drawList')) {
-        //   this.target = JSON.parse(localStorage.getItem('drawList'))
-        // }
+        if (!localStorage.getItem('initData')) {
+          localStorage.setItem('initData', JSON.stringify(this.cells))
+        } else {
+          this.cells = JSON.parse(localStorage.getItem('initData'))
+          
+        }
+        var drawList = JSON.parse(localStorage.getItem('drawList'))
+        var temp = []
+        if (drawList){
+          for (var i = 0; i<drawList.length; i++){
+            if (drawList[i]){
+              temp.push(drawList[i])
+            }
+          }
+          if (temp.length != 0) {
+            this.target = temp
+          }
+        }
 
+        var last_orderNumber = localStorage.getItem("orderNumber")
+        if (last_orderNumber != null){
+          this.orderNumber = parseInt(last_orderNumber);
+        }
 
+        var oldRmList = JSON.parse(localStorage.getItem('removeList'))
+        if (oldRmList !== null){
+          removesList = oldRmList
+          for (var i = 0; i<oldRmList.length; i++){
+            for (var j = 0; j<this.nameList.length; j++){
+              if (this.nameList[j].id === oldRmList[i]){
+                this.nameList[j].isDrawed = true
+              }
+            }
+          }
+        }
       },
       methods: {
         beforeEnter: function (el) {
@@ -111,12 +182,33 @@
           this.items = _.shuffle(this.items)
         },
         shuffle: function () {
-          this.cells = _.shuffle(this.cells);
+          if (this.isRobbed){
+            this.target = _.shuffle(this.target);
+          }else{
+            // this.cells = this.cells
+            this.nameList = _.shuffle(this.nameList);
+          }
+          
+        },
+        letsGo(){
+          this.isStarted = true;
+        },
+        next(){
+          if (this.isRobbed){
+            this.value = this.victim
+          }else{
+              this.orderNumber += 1;
+            this.value = '';
+          }
+          this.isShowed = false;
+          localStorage.setItem("orderNumber", this.orderNumber);
         },
         start() {
+          console.log(this.orderNumber)
+          console.log(this.cells)
           if (this.status) {
             if (this.index != -1) {
-              this.cells.splice(this.index, 1)
+              // this.cells.splice(this.index, 1)
               localStorage.setItem('initData', JSON.stringify(this.cells))
             }
             this.shuffle()
@@ -126,30 +218,112 @@
             this.status = !this.status
           }
         },
-        randomIndex: function () {
-          this.index = Math.floor(Math.random() * this.cells.length)
+        randomIndex: function () { // 如果是蔡珮華抽，就不會呼叫這個function
+          
+          this.index = Math.floor(Math.random() * (this.isRobbed?this.target.length:this.cells.length))
+          if (!this.isRobbed){
+            while (true){
+              var id = this.cells[this.index].id;
+              if (removesList.indexOf(id) == -1){
+                if (this.orderNumber == 21 && id != 21 && id != 15 && id != 16) // 某人指定不要收到某人
+                  break;
+                if (id != 15 && id != this.orderNumber) // 所有人不能抽到許僑芸(id=15)，而且不能抽到自己
+                  break;
+              }
+              this.index = Math.floor(Math.random() * this.cells.length)
+            }
+            
+          }
+          
           return this.index
         },
-        remove: function () {
-          this.cells.splice(this.randomIndex(), 1)
-        },
+        
         recursive() {
           clearTimeout(this.timer)
           this.timer = setTimeout(() => {
-            this.value = this.cells[this.randomIndex()]
+            if (this.isRobbed)
+              this.value = this.target[this.randomIndex()]
+            else
+              this.value = this.cells[this.randomIndex()]
             this.recursive()
           }, 200)
         },
         end() {
+          
           if (this.status) {
             return
           }
           clearTimeout(this.timer)
           this.index = this.randomIndex()
-          this.value = this.cells[this.index]
-          this.target.push(this.value)
-          localStorage.setItem('drawList', JSON.stringify(this.target))
+
+          if (this.isRobbed){
+            this.value = this.target[this.index]
+            for (var i = 0; i<this.nameList.length; i++){
+              if (this.nameList[i].id === this.victim.id){
+                this.nameList[i].isRobbed = true
+                break;
+              }
+            }
+            this.victim = this.value
+            this.target.splice(this.index, 1)
+          }else{
+            if (this.orderNumber == 8){
+              for (var i = 0; i < this.nameList.length; i++){
+                if (this.nameList[i].id === 15){ // 蔡珮華指定抽到許僑芸的
+                  removesList.push(this.nameList[i].id)
+                  this.value = this.nameList[i]
+                  this.nameList[i].isDrawed = true;
+                  break;
+                }
+              }
+
+              for (var i = 0; i < this.cells.length; i++){
+                if (this.cells[i].id === 15){
+                  console.log(i)
+                  this.cells.splice(i, 1)
+                }
+              }
+            }else{
+              this.value = this.cells[this.index]
+              for (var i = 0; i < this.nameList.length; i++){
+                if (this.nameList[i].id === this.cells[this.index].id){
+                  removesList.push(this.nameList[i].id)
+                  this.nameList[i].isDrawed = true;
+                  break;
+                }
+              }
+              this.cells.splice(this.index, 1)
+            }
+            
+            if (this.victim.id){
+              this.victim = '';
+            }else{
+              if (this.orderNumber != 8){
+                let selecteName;
+                for (var i = 0; i < this.nameList.length; i++){
+                  if (this.nameList[i].number === this.items[this.orderNumber]){
+                    selecteName = this.nameList[i];
+                    break;
+                  }
+                }
+                if (!selecteName.isRobbed){
+                  this.target.push(selecteName);
+                }
+              }
+            }
+            localStorage.setItem('drawList', JSON.stringify(this.target))
+          }
+
+          localStorage.setItem('removeList', JSON.stringify(removesList))
           this.status = !this.status
+          this.isShowed = true;
+          console.log(removesList)
+        },
+        draw(){
+          this.isRobbed = false;
+        },
+        rob(){
+          this.isRobbed = true;
         }
       }
     });
@@ -159,18 +333,57 @@
 </html>
 
 <style>
+  body{
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  }
+  .main{
+    background-image: url("pic/網頁背景.jpg");
+    background-size: 100%;
+    width: 100vw;
+    height: 100vh;
+  }
+  .result{
+    cursor: pointer;
+    background-image: url("pic/得獎背景.png");
+    background-size: 100%;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    z-index: 1;
+  }
+  .show-result{
+    display: none;
+  }
+  .start-cover{
+    left: 0;
+    top: 0;
+    position: absolute;
+    z-index: 100;
+    background-image: url("pic/enter.jpg");
+    width: 100vw;
+    height: 100vh;
+    background-size: 100% 100%;
+    cursor: pointer;
+  }
+  .annouce{
+    float: right;
+    width: 36vw;
+    text-align: center;
+    margin-top: 7%;
+  }
   .flip-list-move {
     transition: transform 1s;
   }
 
   .list-complete-item {
     transition: all 1s;
-    margin-right: 10px;
+    /* margin-right: 10px; */
   }
 
   .draw-bg {
-    background-color: crimson;
-    transform-origin: 50% 50%;
+    background-image: url("pic/名單-亮.png") !important;
+    color: #00004d;
+    /* transform-origin: 50% 50%; */
     /* transform: scale(1.1, 1.1); */
   }
 
@@ -178,6 +391,15 @@
     display: inline-block;
     vertical-align: top;
     list-style-type: none;
+    margin-top: 1%;
+  }
+
+  .person-disabled{
+    display: none;
+  }
+
+  .rob-div-disabled{
+    display: none;
   }
 
   ul li {
@@ -188,29 +410,90 @@
   .container {
     display: flex;
     flex-wrap: wrap;
-    width: 700px;
+    width: 60vw;
     margin: 10px;
+    font-size: 2.5rem;
+    font-weight: 700;
   }
 
   .cell {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    width: 520px;
-    height: 20px;
-    /* border: 1px solid #aaa; */
-    /* margin: 1px; */
+    width: 10vw;
+    height: 8vh;
+    margin: 15px;
+    background-image: url("pic/抽獎機_未選.png");
+    background-size: 100% 100%;
+    color: #00004d;
   }
 
-  .cell:nth-child(3n) {
-    margin-right: 0;
-  }
-
-  .cell:nth-child(27n) {
-    margin-bottom: 0;
+  .isDrawed{
+    background-image: url("pic/抽獎機_選過.png") !important;
   }
 
   .cell-move {
     transition: transform 0.5s;
+  }
+
+  .btn-div{
+    margin-top: 2%;
+    padding-inline-start: 50px;
+  }
+  .start-btn{
+    cursor: pointer;
+    margin-right: 3%;
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/開始-亮.png");
+  }
+  .end-btn{
+    cursor: pointer;
+    margin-right: 3%;
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/停止-亮.png");
+  }
+  .draw-btn{
+    cursor: pointer;
+    margin-right: 3%;
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/抽禮物-亮.png");
+  }
+  .rob-btn{
+    cursor: pointer;
+    margin-right: 3%;
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/搶禮物-亮.png");
+  }
+  .start-btn-disabled{
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/開始-暗.png");
+  }
+  .end-btn-disabled{
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/停止-暗.png");
+  }
+  .draw-btn-disabled{
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/抽禮物-暗.png");
+  }
+  .rob-btn-disabled{
+    width: 10vw;
+    height: 10vh;
+    background-size: 100% 100%;
+    background-image: url("pic/搶禮物-暗.png");
   }
 </style>
