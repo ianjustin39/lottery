@@ -229,8 +229,13 @@
                   break;
                 if (this.orderNumber == 21 && id != 21 && id != 15 && id != 16) // 某人指定不要收到某人
                   break;
-                if (id != 15 && id != this.orderNumber) // 所有人不能抽到許僑芸(id=15)，而且不能抽到自己
+                if (this.victim){
+                  if (id != 15 && id != this.victim.id)
                   break;
+                }else{
+                  if (id != 15 && id != this.orderNumber) // 所有人不能抽到許僑芸(id=15)，而且不能抽到自己
+                    break;
+                }
               }
               this.index = Math.floor(Math.random() * this.cells.length)
             }
