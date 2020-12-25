@@ -51,7 +51,7 @@
         <img src="pic/name.png" width="200vw"/>
         <br>
         <br>
-        <span style="color: white; font-size: 6rem; font-weight: bolder;">{{victim&&victim.id?victim.number:items[orderNumber]}}</span>
+        <span style="color: white; font-size: 6rem; font-weight: bolder;">{{victim?victim.number:items[orderNumber]}}</span>
       </div>
       <div class="person" :class="{'person-disabled': isRobbed}">
         <transition-group name="cell" tag="ul" class="container">
@@ -204,8 +204,8 @@
           localStorage.setItem("orderNumber", this.orderNumber);
         },
         start() {
-          console.log(this.orderNumber)
-          console.log(this.cells)
+          console.log("這次換誰抽（編號）："+this.orderNumber)
+          console.log("剩下誰的獎品："+this.cells)
           if (this.status) {
             if (this.index != -1) {
               // this.cells.splice(this.index, 1)
@@ -225,6 +225,8 @@
             while (true){
               var id = this.cells[this.index].id;
               if (removesList.indexOf(id) == -1){
+                if (this.orderNumber == 0 && id != 0 && id != 15 && id != 27) // 某人指定不要收到某人
+                  break;
                 if (this.orderNumber == 21 && id != 21 && id != 15 && id != 16) // 某人指定不要收到某人
                   break;
                 if (id != 15 && id != this.orderNumber) // 所有人不能抽到許僑芸(id=15)，而且不能抽到自己
@@ -259,7 +261,7 @@
           if (this.isRobbed){
             this.value = this.target[this.index]
             for (var i = 0; i<this.nameList.length; i++){
-              if (this.nameList[i].id === this.victim.id){
+              if (this.nameList[i].id === this.value.id){
                 this.nameList[i].isRobbed = true
                 break;
               }
@@ -304,7 +306,7 @@
               this.cells.splice(this.index, 1)
             }
             
-            if (this.victim.id){
+            if (this.victim){
               this.victim = '';
             }else{
               if (this.orderNumber != 8){
@@ -326,7 +328,8 @@
           localStorage.setItem('removeList', JSON.stringify(removesList))
           this.status = !this.status
           this.isShowed = true;
-          console.log(removesList)
+          console.log(this.victim)
+          console.log("已經被抽走的編號："+removesList)
         },
         draw(){
           this.isRobbed = false;
